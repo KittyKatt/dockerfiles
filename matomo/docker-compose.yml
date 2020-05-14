@@ -1,0 +1,24 @@
+version: "3"
+
+networks:
+  web:
+    external: true
+  sql:
+    external: true
+
+services:
+  app:
+    container_name: Matomo-Analytics
+    image: matomo
+    restart: always
+    networks:
+      - web
+      - sql
+    volumes:
+      - /docker/volumes/matomo:/var/www/html
+    environment:
+      - MATOMO_DATABASE_HOST=localhost
+    env_file:
+      - ./db.env
+#    ports:
+#      - 8094:80

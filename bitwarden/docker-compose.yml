@@ -1,0 +1,49 @@
+version: '2'
+
+services:
+  bitwarden:
+    image: mprasil/bitwarden:latest
+    restart: always
+    expose:
+      - 80
+      - 443
+    networks:
+      - web
+    environment:
+      - PUID=XXXX
+      - PGID=XXXX
+      - TZ=America/Chicago
+      - ADMIN_TOKEN=XXXXXXXX
+    volumes:
+      - /var/docker/volumes/bitwarden/:/data/
+    container_name: BitWarden
+
+  bw_backup:
+    image: bruceforce/bw_backup
+    container_name: BW_Backup
+    restart: on-failure
+    networks:
+      - web
+    depends_on:
+      - bitwarden
+    volumes:
+      - /var/docker/volumes/bitwarden/:/data/
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      # uncomment this if you want your backup to be written to ./backup/ folder"
+      - /var/docker/volumes/bitwarden/bkup/:/backup_folder/
+    environment:
+      - DB_FILE=/data/db.sqlite3
+        # uncomment this if you want your backup to be written to ./backup/ folder"
+        # - BACKUP_FILE=/backup_folder/db_backup/backup.sqlite3
+      # - BACKUP_FILE=/data/db_backup/backup.sqlite3
+      - BACKUP_FILE=/backup_folder/db_backup/backup.sqlite3
+      - CRON_TIME=0 5 * * *
+      - TIMESTAMP=false
+      - UID=XXXX
+      - GID=XXXX
+
+
+networks:
+  web:
+    external: true

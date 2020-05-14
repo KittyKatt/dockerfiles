@@ -1,0 +1,20 @@
+version: '2'
+
+services:
+  nextcloud:
+    image: nextcloud
+    restart: always
+    expose:
+      - 80
+      - 443
+    networks:
+      - web
+    environment:
+      - TZ=America/Chicago
+    volumes:
+      - /var/docker/volumes/nextcloud/data:/var/www/html/data:rw
+    container_name: NextCloud
+
+networks:
+  web:
+    external: true

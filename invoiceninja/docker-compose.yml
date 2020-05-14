@@ -1,0 +1,58 @@
+version: '3.6'
+
+# uncomment if you want to use external network (example network: "web")
+networks:
+  sql:
+    external: true
+  web:
+    external: true
+
+services:
+  app:
+    image: invoiceninja/invoiceninja
+    env_file: .env
+    restart: always
+    volumes:
+      -  /var/docker/volumes/invoiceninja/storage:/var/www/app/storage
+      -  /var/docker/volumes/invoiceninja/logo:/var/www/app/public/logo
+      -  /var/docker/volumes/invoiceninja/public:/var/www/app/public
+    networks: 
+      - sql
+      - web
+
+  # Apparently this is needed because invoiceninja doesn't actually serve its own files
+  web:
+    image: nginx:1
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      -  /var/docker/volumes/invoiceninja/storage:/var/www/app/storage
+      -  /var/docker/volumes/invoiceninja/logo:/var/www/app/public/logo
+      -  /var/docker/volumes/invoiceninja/public:/var/www/app/public
+    #expose: # Expose ports without publishing them to the host machine - they’ll only be accessible to linked services.
+    #  - "80"
+    depends_on:
+      - app
+    ports: # Delete if you want to use reverse proxy
+      - 8081:80
+    networks:
+      - web        # uncomment if you want to use  external network (reverse proxy for example)
+
+  cron:
+    image: invoiceninja/invoiceninja
+    env_file: .env
+    volumes:
+      -  /var/docker/volumes/invoiceninja/storage:/var/www/app/storage
+      -  /var/docker/volumes/invoiceninja/logo:/var/www/app/public/logo
+      -  /var/docker/volumes/invoiceninja/public:/var/www/app/public
+    entrypoint: |
+      bash -c 'bash -s <<EOF
+      trap "break;exit" SIGHUP SIGINT SIGTERM
+      sleep 300s
+      while /bin/true; do
+        ./artisan ninja:send-invoices
+        ./artisan ninja:send-reminders
+        sleep 1d
+      done
+      EOF'
+    networks:
+      - web
